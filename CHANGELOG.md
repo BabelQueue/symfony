@@ -9,6 +9,24 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-06
+
+### Added
+- `Messenger\TracePropagationMiddleware` — **automatic** `trace_id` propagation:
+  while a received message is handled, any follow-up message dispatched on the bus
+  inherits its `trace_id` (unless it pins its own stamp or implements `HasTraceId`).
+  Registered as `babelqueue.messenger.trace_middleware`.
+
+### Changed
+- Raise the core dependency to `babelqueue/php-sdk ^0.3`.
+
+### Notes
+- The version jumps to **0.3.0** to align the PHP packages (`php-sdk`, `laravel`,
+  `symfony`) on one version line. The serializer/codec foundation below shipped
+  across 0.1.0–0.2.0; this changelog began per-version sections at 0.3.0.
+
+## [0.1.0] - 2026-06-06
+
 ### Added
 - `Messenger\BabelQueueSerializer` — a Symfony Messenger transport serializer that
   encodes/decodes the canonical BabelQueue envelope via the shared core codec
@@ -18,14 +36,9 @@ The envelope wire format is versioned separately by `meta.schema_version`
 - `Messenger\MessageRegistry` — URN → message-class map for decoding.
 - `Messenger\Stamp\BabelTraceStamp` — carries `trace_id` through the pipeline;
   attached on decode, honoured on encode (trace continuation).
-- `Messenger\TracePropagationMiddleware` — **automatic** `trace_id` propagation:
-  while a received message is handled, any follow-up message dispatched on the bus
-  inherits its `trace_id` (unless it pins its own stamp or implements `HasTraceId`).
-  Registered as `babelqueue.messenger.trace_middleware`.
 - Redelivery ↔ `attempts` bridge (Messenger `RedeliveryStamp` ⇄ envelope `attempts`).
 - `BabelQueueBundle` + DI: registers the serializer as
-  `babelqueue.messenger.serializer` and the middleware as
-  `babelqueue.messenger.trace_middleware`, configured under the `babelqueue` key.
+  `babelqueue.messenger.serializer`, configured under the `babelqueue` key.
 
 ### Notes
 - Pre-1.0: the public API may change before the `1.0.0` tag.
@@ -33,4 +46,6 @@ The envelope wire format is versioned separately by `meta.schema_version`
 - Routing/worker/retry remain Messenger's responsibility; this package only owns
   the wire format.
 
-[Unreleased]: https://github.com/BabelQueue/symfony/commits/main
+[Unreleased]: https://github.com/BabelQueue/symfony/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/BabelQueue/symfony/compare/v0.2.0...v0.3.0
+[0.1.0]: https://github.com/BabelQueue/symfony/releases/tag/v0.1.0
