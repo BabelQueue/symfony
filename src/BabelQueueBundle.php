@@ -8,8 +8,9 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
  * Registers the BabelQueue Symfony integration: the Messenger serializer service
- * `babelqueue.messenger.serializer` and the URN → message-class registry, both
- * configured under the `babelqueue` config key.
+ * `babelqueue.messenger.serializer`, the trace-propagation middleware
+ * `babelqueue.messenger.trace_middleware`, and the URN → message-class registry,
+ * all configured under the `babelqueue` config key.
  *
  * Enable it in config/bundles.php:
  *

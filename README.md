@@ -51,6 +51,12 @@ framework:
                 serializer: 'babelqueue.messenger.serializer'
         routing:
             'App\Message\OrderCreated': babel
+        buses:
+            messenger.bus.default:
+                middleware:
+                    # Auto-forward trace_id from a handled message to any it
+                    # dispatches, so a chain of work stays in one trace.
+                    - 'babelqueue.messenger.trace_middleware'
 ```
 
 ```yaml
@@ -129,8 +135,11 @@ Run the worker as usual: `php bin/console messenger:consume babel`.
 - **Routing** is Messenger's job: it routes the decoded message class to a handler.
 - **Retry** bridges both ways — Messenger's `RedeliveryStamp` ⇄ the envelope's
   top-level `attempts`.
-- **Tracing** — the inbound `trace_id` is attached as a `BabelTraceStamp`; re-emit
-  it on a downstream message (with the stamp) to continue the trace.
+- **Tracing** — the inbound `trace_id` is attached as a `BabelTraceStamp`. With
+  `babelqueue.messenger.trace_middleware` on the bus (see config above), any
+  message a handler dispatches **automatically** inherits that `trace_id`, so a
+  whole chain stays in one trace. A message that pins its own `BabelTraceStamp` or
+  implements `HasTraceId` keeps its explicit id.
 - **Unknown URN** — a message whose URN isn't mapped throws
   `MessageDecodingFailedException`, so Messenger routes it to your failure
   transport (the idiomatic Symfony behavior).

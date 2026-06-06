@@ -18,15 +18,19 @@ The envelope wire format is versioned separately by `meta.schema_version`
 - `Messenger\MessageRegistry` — URN → message-class map for decoding.
 - `Messenger\Stamp\BabelTraceStamp` — carries `trace_id` through the pipeline;
   attached on decode, honoured on encode (trace continuation).
+- `Messenger\TracePropagationMiddleware` — **automatic** `trace_id` propagation:
+  while a received message is handled, any follow-up message dispatched on the bus
+  inherits its `trace_id` (unless it pins its own stamp or implements `HasTraceId`).
+  Registered as `babelqueue.messenger.trace_middleware`.
 - Redelivery ↔ `attempts` bridge (Messenger `RedeliveryStamp` ⇄ envelope `attempts`).
 - `BabelQueueBundle` + DI: registers the serializer as
-  `babelqueue.messenger.serializer`, configured under the `babelqueue` key.
+  `babelqueue.messenger.serializer` and the middleware as
+  `babelqueue.messenger.trace_middleware`, configured under the `babelqueue` key.
 
 ### Notes
 - Pre-1.0: the public API may change before the `1.0.0` tag.
 - Requires PHP `^8.2`, `babelqueue/php-sdk ^0.1`, and Symfony `^6.4 | ^7.0`.
 - Routing/worker/retry remain Messenger's responsibility; this package only owns
-  the wire format. Automatic `trace_id` propagation across re-dispatches (a
-  middleware) is planned.
+  the wire format.
 
 [Unreleased]: https://github.com/BabelQueue/symfony/commits/main
