@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  # Composer 2.9+ excludes versions with open security advisories during
+  # resolution; a flagged Symfony patch can otherwise break a leg. We test
+  # compatibility across the supported range here (CI, not a deployment).
+  COMPOSER_NO_SECURITY_BLOCKING: "1"
+
+jobs:
+  test:
+    name: PHP ${{ matrix.php }} · ${{ matrix.deps }} deps
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3', '8.4']
+        deps: ['highest', 'lowest']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: json
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: |
+          if [ "${{ matrix.deps }}" = "lowest" ]; then
+            composer update --prefer-lowest --prefer-dist --no-interaction --no-progress
+          else
+            composer update --prefer-dist --no-interaction --no-progress
+          fi
+
+      - name: Run tests
+        run: vendor/bin/phpunit

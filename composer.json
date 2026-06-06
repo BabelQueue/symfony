@@ -1,0 +1,51 @@
+{
+    "name": "babelqueue/symfony",
+    "description": "Symfony adapter for BabelQueue: a Messenger serializer that speaks the canonical polyglot envelope, so Symfony services interoperate with Laravel, Go, Python, .NET and Node over one wire format. Built on babelqueue/php-sdk.",
+    "keywords": [
+        "symfony",
+        "messenger",
+        "queue",
+        "polyglot",
+        "microservices",
+        "json"
+    ],
+    "type": "symfony-bundle",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Muhammet Şafak",
+            "email": "info@muhammetsafak.com.tr"
+        }
+    ],
+    "homepage": "https://babelqueue.com",
+    "support": {
+        "issues": "https://github.com/BabelQueue/symfony/issues",
+        "source": "https://github.com/BabelQueue/symfony"
+    },
+    "require": {
+        "php": "^8.2",
+        "babelqueue/php-sdk": "^0.1",
+        "symfony/messenger": "^6.4|^7.0",
+        "symfony/config": "^6.4|^7.0",
+        "symfony/dependency-injection": "^6.4|^7.0",
+        "symfony/http-kernel": "^6.4|^7.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.5|^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "BabelQueue\\Symfony\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BabelQueue\\Symfony\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
