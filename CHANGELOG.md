@@ -9,6 +9,15 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-06-07
+
+**1.0.0 — the public API is now SemVer-stable**: breaking changes require a MAJOR,
+following the deprecation policy. The wire envelope is unchanged
+(`schema_version: 1`). Full reference at [babelqueue.com](https://babelqueue.com).
+
+### Changed
+- Require `babelqueue/php-sdk ^1.0`.
+
 ### Internal
 - CI runs **PHPStan (level 9)** over `src` and enforces a **>=90% line-coverage
   gate** (`bin/check-coverage.php`); added a DI test for the bundle extension.
@@ -52,6 +61,7 @@ The envelope wire format is versioned separately by `meta.schema_version`
 - Routing/worker/retry remain Messenger's responsibility; this package only owns
   the wire format.
 
-[Unreleased]: https://github.com/BabelQueue/symfony/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/BabelQueue/symfony/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/BabelQueue/symfony/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/BabelQueue/symfony/compare/v0.2.0...v0.3.0
 [0.1.0]: https://github.com/BabelQueue/symfony/releases/tag/v0.1.0
