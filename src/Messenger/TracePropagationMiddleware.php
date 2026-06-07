@@ -48,7 +48,8 @@ final class TracePropagationMiddleware implements MiddlewareInterface
         // A message coming off a transport: open a handling context carrying its
         // trace id for the duration, so nested dispatches can inherit it.
         if ($envelope->last(ReceivedStamp::class) !== null) {
-            $this->handling[] = $envelope->last(BabelTraceStamp::class)?->traceId ?? '';
+            $inbound = $envelope->last(BabelTraceStamp::class);
+            $this->handling[] = $inbound instanceof BabelTraceStamp ? $inbound->traceId : '';
 
             try {
                 return $stack->next()->handle($envelope, $stack);

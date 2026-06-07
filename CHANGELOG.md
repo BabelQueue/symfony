@@ -9,6 +9,12 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+### Internal
+- CI runs **PHPStan (level 9)** over `src` and enforces a **>=90% line-coverage
+  gate** (`bin/check-coverage.php`); added a DI test for the bundle extension.
+  Decode now hardens mixed JSON values (URN via the core `EnvelopeCodec::urn`,
+  guarded `attempts`/`trace_id`) — no behaviour change for valid envelopes.
+
 ## [0.3.0] - 2026-06-06
 
 ### Added

@@ -85,7 +85,7 @@ final class BabelQueueSerializer implements SerializerInterface
         $data = EnvelopeCodec::decode((string) ($encodedEnvelope['body'] ?? ''));
 
         // The canonical field is "job"; "urn" is accepted as an inbound alias.
-        $urn = (string) ($data['job'] ?? $data['urn'] ?? '');
+        $urn = EnvelopeCodec::urn($data);
 
         if ($urn === '') {
             throw new MessageDecodingFailedException('BabelQueue envelope has no URN ("job").');
@@ -115,12 +115,14 @@ final class BabelQueueSerializer implements SerializerInterface
 
         $stamps = [];
 
-        $attempts = (int) ($data['attempts'] ?? 0);
+        $rawAttempts = $data['attempts'] ?? 0;
+        $attempts = is_numeric($rawAttempts) ? (int) $rawAttempts : 0;
         if ($attempts > 0) {
             $stamps[] = new RedeliveryStamp($attempts);
         }
 
-        $traceId = (string) ($data['trace_id'] ?? '');
+        $rawTraceId = $data['trace_id'] ?? '';
+        $traceId = is_string($rawTraceId) ? $rawTraceId : '';
         if ($traceId !== '') {
             $stamps[] = new BabelTraceStamp($traceId);
         }
