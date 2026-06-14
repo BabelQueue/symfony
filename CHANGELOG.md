@@ -9,6 +9,21 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-14
+
+### Fixed
+- **The bundle now boots in a real Symfony kernel under the `babelqueue` config key.**
+  `BabelQueueBundle` did not override `getContainerExtension()`, so on a real kernel boot the
+  auto-derived extension alias (`babel_queue`) did not match the `babelqueue` config key and the
+  kernel threw a `LogicException`. The bundle now returns `BabelQueueExtension` explicitly. (The
+  prior tests exercised the extension directly and never booted a kernel, so they missed it.)
+
+### Internal
+- Added a **bundle integration test** that boots a minimal test kernel registering `BabelQueueBundle`
+  and asserts the serializer/middleware services resolve and the `babelqueue` config (default queue +
+  URN message registry) is read.
+- **CI:** `release.yml` now runs the **≥90% coverage gate** (mirroring `ci.yml`).
+
 ## [1.1.0] - 2026-06-14
 
 ### Changed
@@ -79,7 +94,8 @@ following the deprecation policy. The wire envelope is unchanged
 - Routing/worker/retry remain Messenger's responsibility; this package only owns
   the wire format.
 
-[Unreleased]: https://github.com/BabelQueue/symfony/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/BabelQueue/symfony/compare/v1.1.1...HEAD
+[1.1.1]: https://github.com/BabelQueue/symfony/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/BabelQueue/symfony/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/BabelQueue/symfony/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/BabelQueue/symfony/compare/v0.2.0...v0.3.0
