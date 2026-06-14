@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BabelQueue\Symfony;
 
+use BabelQueue\Symfony\DependencyInjection\BabelQueueExtension;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 
 /**
@@ -18,4 +19,12 @@ use Symfony\Component\HttpKernel\Bundle\Bundle;
  */
 final class BabelQueueBundle extends Bundle
 {
+    /**
+     * Return the extension explicitly so the `babelqueue` config key (rather than
+     * the auto-derived `babel_queue`) is the one the kernel registers.
+     */
+    public function getContainerExtension(): BabelQueueExtension
+    {
+        return new BabelQueueExtension();
+    }
 }
