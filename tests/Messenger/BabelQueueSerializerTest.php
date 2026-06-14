@@ -32,10 +32,16 @@ final class BabelQueueSerializerTest extends TestCase
         $encoded = $this->serializer()->encode(new Envelope(new OrderCreatedStub(1042)));
 
         $this->assertArrayHasKey('body', $encoded);
-        $this->assertSame('application/json', $encoded['headers']['Content-Type']);
-        $this->assertSame('urn:babel:orders:created', $encoded['headers']['X-Babel-Urn']);
+        $headers = $encoded['headers'];
+        $this->assertSame('application/json', $headers['Content-Type']);
+        $this->assertSame('urn:babel:orders:created', $headers['bq-job']);
+        $this->assertSame('1', $headers['bq-schema-version']);
+        $this->assertSame('php', $headers['bq-source-lang']);
+        $this->assertSame('0', $headers['bq-attempts']);
 
         $payload = json_decode($encoded['body'], true);
+        $this->assertSame($payload['trace_id'], $headers['bq-trace-id']);
+        $this->assertSame($payload['meta']['id'], $headers['bq-message-id']);
         $this->assertSame(['job', 'trace_id', 'data', 'meta', 'attempts'], array_keys($payload));
         $this->assertSame('urn:babel:orders:created', $payload['job']);
         $this->assertSame(['order_id' => 1042], $payload['data']);

@@ -9,6 +9,24 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-06-14
+
+### Changed
+- **Aligned the Messenger serializer's transport headers to the canonical `bq-` projection.**
+  `BabelQueueSerializer::encode()` now emits `bq-job` (URN), `bq-trace-id`, `bq-message-id`,
+  `bq-schema-version`, `bq-source-lang` and `bq-attempts` — the same `bq-` header set the
+  Kafka/SQS/Pulsar bindings use — instead of the non-standard `X-Babel-Urn` / `X-Babel-Trace-Id` /
+  `X-Babel-Schema-Version` (which also omitted source-lang, attempts and message-id). This makes
+  Symfony-produced headers **consistent with the rest of the ecosystem** and lets a transport that
+  maps serializer headers onto native broker headers (e.g. a Kafka Messenger transport) carry the
+  §6-style `bq-` metadata, so a cross-language consumer can route on `bq-job` without decoding the
+  body. The **wire envelope is unchanged** (`schema_version: 1`, byte-identical body) — interop has
+  always been **body-authoritative**, so consumers that decode the body are unaffected; only the
+  redundant transport-header *names* changed. **Migration:** if you read `X-Babel-*` headers off the
+  transport, switch to the `bq-*` names. Note: for transports where the native projection is owned
+  by Messenger itself (AMQP `type`, SQS `MessageAttributes`), routing stays body-authoritative
+  regardless of these serializer headers.
+
 ## [1.0.0] - 2026-06-07
 
 **1.0.0 — the public API is now SemVer-stable**: breaking changes require a MAJOR,
@@ -61,7 +79,8 @@ following the deprecation policy. The wire envelope is unchanged
 - Routing/worker/retry remain Messenger's responsibility; this package only owns
   the wire format.
 
-[Unreleased]: https://github.com/BabelQueue/symfony/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/BabelQueue/symfony/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/BabelQueue/symfony/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/BabelQueue/symfony/compare/v0.3.0...v1.0.0
 [0.3.0]: https://github.com/BabelQueue/symfony/compare/v0.2.0...v0.3.0
 [0.1.0]: https://github.com/BabelQueue/symfony/releases/tag/v0.1.0

@@ -66,13 +66,21 @@ final class BabelQueueSerializer implements SerializerInterface
             $payload['trace_id'] = $traceStamp->traceId;
         }
 
+        $messageId = is_string($payload['meta']['id'] ?? null) ? $payload['meta']['id'] : '';
+
         return [
             'body' => EnvelopeCodec::encode($payload),
+            // Mirror the canonical envelope onto the cross-broker `bq-` transport headers (the same
+            // projection Kafka/SQS/Pulsar use), so a transport that maps serializer headers onto
+            // native broker headers carries the contract metadata; the body stays authoritative.
             'headers' => [
                 'Content-Type' => 'application/json',
-                'X-Babel-Urn' => $payload['job'],
-                'X-Babel-Trace-Id' => $payload['trace_id'],
-                'X-Babel-Schema-Version' => (string) EnvelopeCodec::SCHEMA_VERSION,
+                'bq-job' => $payload['job'],
+                'bq-trace-id' => $payload['trace_id'],
+                'bq-message-id' => $messageId,
+                'bq-schema-version' => (string) EnvelopeCodec::SCHEMA_VERSION,
+                'bq-source-lang' => EnvelopeCodec::SOURCE_LANG,
+                'bq-attempts' => (string) $payload['attempts'],
             ],
         ];
     }
