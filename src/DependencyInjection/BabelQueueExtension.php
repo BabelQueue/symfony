@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace BabelQueue\Symfony\DependencyInjection;
 
+use BabelQueue\Idempotency\IdempotencyStore;
+use BabelQueue\Idempotency\InMemoryStore;
 use BabelQueue\Symfony\Messenger\BabelQueueSerializer;
+use BabelQueue\Symfony\Messenger\IdempotencyMiddleware;
 use BabelQueue\Symfony\Messenger\MessageRegistry;
 use BabelQueue\Symfony\Messenger\TracePropagationMiddleware;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -27,7 +30,13 @@ final class BabelQueueExtension extends Extension
      */
     public function load(array $configs, ContainerBuilder $container): void
     {
-        /** @var array{queue: string, messages: array<string, class-string>} $config */
+        /**
+         * @var array{
+         *     queue: string,
+         *     messages: array<string, class-string>,
+         *     idempotency: array{enabled: bool, store: ?string, ttl: int}
+         * } $config
+         */
         $config = $this->processConfiguration(new Configuration(), $configs);
 
         $container->setDefinition(
@@ -52,6 +61,44 @@ final class BabelQueueExtension extends Extension
         );
 
         $container->setAlias('babelqueue.messenger.trace_middleware', TracePropagationMiddleware::class)
+            ->setPublic(true);
+
+        $this->registerIdempotency($config['idempotency'], $container);
+    }
+
+    /**
+     * Register the consume-side idempotency middleware and resolve its store, but
+     * only when explicitly enabled — disabled by default so existing setups are
+     * untouched (backward compatible).
+     *
+     * @param  array{enabled: bool, store: ?string, ttl: int}  $idempotency
+     */
+    private function registerIdempotency(array $idempotency, ContainerBuilder $container): void
+    {
+        if ($idempotency['enabled'] !== true) {
+            return;
+        }
+
+        // Resolve the store: a user-provided service id, or a bundled in-memory
+        // store (single-process / tests — a fleet should point this at a shared
+        // PdoStore / RedisStore from babelqueue/php-sdk).
+        if ($idempotency['store'] !== null && $idempotency['store'] !== '') {
+            $storeRef = new Reference($idempotency['store']);
+        } else {
+            $container->setDefinition(InMemoryStore::class, new Definition(InMemoryStore::class));
+            $container->setAlias(IdempotencyStore::class, InMemoryStore::class);
+            $storeRef = new Reference(IdempotencyStore::class);
+        }
+
+        $container->setDefinition(
+            IdempotencyMiddleware::class,
+            new Definition(IdempotencyMiddleware::class, [
+                $storeRef,
+                $idempotency['ttl'],
+            ]),
+        );
+
+        $container->setAlias('babelqueue.messenger.idempotency_middleware', IdempotencyMiddleware::class)
             ->setPublic(true);
     }
 

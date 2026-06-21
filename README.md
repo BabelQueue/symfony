@@ -67,6 +67,73 @@ babelqueue:
         'urn:babel:orders:created': 'App\Message\OrderCreated'
 ```
 
+## Idempotency (deduplicate redeliveries)
+
+Brokers deliver **at least once**, so a worker can see the same logical message
+twice (a redelivery after a crash, a visibility-timeout expiry, a fan-out). Enable
+the idempotency middleware to deduplicate on the envelope's canonical `meta.id`, so
+a handler runs **once** per message. It's **opt-in and off by default** — leaving it
+disabled changes nothing.
+
+```yaml
+# config/packages/babelqueue.yaml
+babelqueue:
+    idempotency:
+        enabled: true          # opt-in; off by default
+        store: ~               # service id of a BabelQueue\Idempotency\IdempotencyStore;
+                               # null = a bundled in-memory store (single process / tests only)
+        ttl: 3600              # in-flight claim TTL in seconds (only used by a ClaimingStore)
+```
+
+```yaml
+# config/packages/messenger.yaml — register it BEFORE your handlers on the
+# consuming bus (alongside the trace middleware).
+framework:
+    messenger:
+        buses:
+            messenger.bus.default:
+                middleware:
+                    - 'babelqueue.messenger.idempotency_middleware'
+                    - 'babelqueue.messenger.trace_middleware'
+```
+
+How it behaves, per inbound delivery (keyed on `meta.id`):
+
+- **first delivery** → the handler runs once; on a clean return the id is recorded.
+- **a duplicate** (same `meta.id` already recorded) → the handler is **skipped** and
+  the message is acked, so the broker stops redelivering.
+- **the handler throws** → the id is **not** recorded and the error propagates, so
+  Messenger's retry / failure transport still apply and a later delivery runs again.
+- **a message with no usable id** → handled unchanged (fail-open).
+
+The default in-memory store is process-local — fine for a single worker or tests,
+but a **fleet** of workers must share one store. Point `store` at a service
+implementing `BabelQueue\Idempotency\IdempotencyStore` (from `babelqueue/php-sdk`),
+such as the persistent `PdoStore` (Postgres / MySQL / SQLite) or `RedisStore`:
+
+```yaml
+# config/services.yaml
+services:
+    app.babelqueue.idempotency_store:
+        class: BabelQueue\Idempotency\RedisStore
+        arguments: ['@your.predis.client']
+```
+
+```yaml
+# config/packages/babelqueue.yaml
+babelqueue:
+    idempotency:
+        enabled: true
+        store: 'app.babelqueue.idempotency_store'
+```
+
+If the configured store implements `BabelQueue\Idempotency\ClaimingStore` (the
+persistent `PdoStore` / `RedisStore` do), the middleware uses an **atomic claim**:
+of N concurrent deliveries of the same id, exactly one runs the handler; the rest
+are **parked** (redelivered later, not acked) until the winner commits. `ttl` bounds
+a crash between claim and commit. This is still at-least-once, never exactly-once —
+keep handlers idempotent.
+
 ## A message
 
 Implement `BabelQueue\Symfony\Contracts\PolyglotMessage`:
@@ -143,6 +210,9 @@ Run the worker as usual: `php bin/console messenger:consume babel`.
 - **Unknown URN** — a message whose URN isn't mapped throws
   `MessageDecodingFailedException`, so Messenger routes it to your failure
   transport (the idiomatic Symfony behavior).
+- **Idempotency** — with `babelqueue.messenger.idempotency_middleware` on the bus
+  (opt-in, see above), a redelivery of the same `meta.id` is acked without
+  re-running the handler. The id is surfaced on decode as a `BabelMessageIdStamp`.
 
 ## Testing
 

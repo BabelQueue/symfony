@@ -6,6 +6,7 @@ namespace BabelQueue\Symfony\Tests\Bundle;
 
 use BabelQueue\Symfony\BabelQueueBundle;
 use BabelQueue\Symfony\Messenger\BabelQueueSerializer;
+use BabelQueue\Symfony\Messenger\IdempotencyMiddleware;
 use BabelQueue\Symfony\Messenger\MessageRegistry;
 use BabelQueue\Symfony\Messenger\TracePropagationMiddleware;
 use PHPUnit\Framework\TestCase;
@@ -83,6 +84,33 @@ final class BundleIntegrationTest extends TestCase
         $serializer = $kernel->getContainer()->get('babelqueue.messenger.serializer');
 
         $this->assertSame('default', $this->queueOf($serializer));
+
+        $kernel->shutdown();
+    }
+
+    public function test_idempotency_middleware_resolves_when_enabled_in_a_real_kernel(): void
+    {
+        $kernel = new TestKernel([
+            'idempotency' => ['enabled' => true],
+        ]);
+        $kernel->boot();
+        $container = $kernel->getContainer();
+
+        $this->assertTrue($container->has('babelqueue.messenger.idempotency_middleware'));
+        $this->assertInstanceOf(
+            IdempotencyMiddleware::class,
+            $container->get('babelqueue.messenger.idempotency_middleware'),
+        );
+
+        $kernel->shutdown();
+    }
+
+    public function test_idempotency_middleware_is_absent_when_disabled(): void
+    {
+        $kernel = new TestKernel([]);
+        $kernel->boot();
+
+        $this->assertFalse($kernel->getContainer()->has('babelqueue.messenger.idempotency_middleware'));
 
         $kernel->shutdown();
     }

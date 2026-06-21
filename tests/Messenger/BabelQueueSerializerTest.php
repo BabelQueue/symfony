@@ -7,6 +7,7 @@ namespace BabelQueue\Symfony\Tests\Messenger;
 use BabelQueue\Symfony\Contracts\PolyglotMessage;
 use BabelQueue\Symfony\Messenger\BabelQueueSerializer;
 use BabelQueue\Symfony\Messenger\MessageRegistry;
+use BabelQueue\Symfony\Messenger\Stamp\BabelMessageIdStamp;
 use BabelQueue\Symfony\Messenger\Stamp\BabelTraceStamp;
 use LogicException;
 use PHPUnit\Framework\TestCase;
@@ -105,6 +106,38 @@ final class BabelQueueSerializerTest extends TestCase
             new Envelope(new OrderCreatedStub(5), [new BabelTraceStamp('trace-abc')]),
         );
         $this->assertSame('trace-abc', json_decode($reEncoded['body'], true)['trace_id']);
+    }
+
+    public function test_meta_id_is_exposed_on_decode_for_idempotency(): void
+    {
+        $body = json_encode([
+            'job' => 'urn:babel:orders:created',
+            'trace_id' => 'trace-abc',
+            'data' => ['order_id' => 5],
+            'meta' => ['id' => 'msg-123'],
+            'attempts' => 0,
+        ]);
+
+        $decoded = $this->serializer()->decode(['body' => $body, 'headers' => []]);
+
+        $stamp = $decoded->last(BabelMessageIdStamp::class);
+        $this->assertInstanceOf(BabelMessageIdStamp::class, $stamp);
+        $this->assertSame('msg-123', $stamp->messageId);
+    }
+
+    public function test_missing_meta_id_attaches_no_message_id_stamp(): void
+    {
+        $body = json_encode([
+            'job' => 'urn:babel:orders:created',
+            'trace_id' => 'trace-abc',
+            'data' => ['order_id' => 5],
+            'meta' => [],
+            'attempts' => 0,
+        ]);
+
+        $decoded = $this->serializer()->decode(['body' => $body, 'headers' => []]);
+
+        $this->assertNull($decoded->last(BabelMessageIdStamp::class));
     }
 
     public function test_unknown_urn_fails_decoding(): void

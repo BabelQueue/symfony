@@ -9,6 +9,40 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+### Added
+- **Idempotent message handling (ADR-0022).** An opt-in Messenger middleware,
+  `BabelQueue\Symfony\Messenger\IdempotencyMiddleware`, deduplicates a redelivered
+  BabelQueue message on its canonical `meta.id` so a handler runs once per logical
+  message under the broker's at-least-once delivery. It is the Symfony-idiomatic
+  wrapper around the core `BabelQueue\Idempotency\Idempotent::wrap()` /
+  `ClaimingDispatch::wrap()` helpers (from `babelqueue/php-sdk`), adapted to the
+  Messenger stack:
+  - Acts only on the **receive** path (a delivery carrying a `ReceivedStamp`); a
+    fresh outbound dispatch passes through untouched. A first delivery is handled
+    once and recorded; a duplicate is **acked without re-handling**; a thrown
+    handler leaves the id unrecorded so Messenger's retry / failure transport (and
+    DLQ) still apply; an id-less message is handled unchanged (fail-open).
+  - When the configured store implements `BabelQueue\Idempotency\ClaimingStore`
+    (the persistent `PdoStore` / `RedisStore`), the stronger atomic
+    claim/commit/release lifecycle is used: exactly one of N concurrent deliveries
+    of the same id runs the handler, and a delivery that loses to an in-flight peer
+    is **parked** (it throws `ClaimParkedException`, so Messenger does not ack it
+    and the broker redelivers later). Still at-least-once, never exactly-once.
+  - Configured under the `babelqueue.idempotency` key (`enabled` — default `false`,
+    so behavior is unchanged when off; `store` — a service id, defaulting to a
+    bundled in-memory store for single-process / test use; `ttl` — the in-flight
+    claim TTL honoured by a `ClaimingStore`). Exposed for the bus as the public
+    alias `babelqueue.messenger.idempotency_middleware`.
+- The serializer now surfaces the envelope's `meta.id` on decode as a
+  `BabelQueue\Symfony\Messenger\Stamp\BabelMessageIdStamp`, so consume-side
+  middleware can deduplicate on the stable per-message identity. The frozen wire
+  envelope is unchanged (`schema_version` stays **1**) — this is a consume-side
+  artifact only.
+
+### Changed
+- Bumped the `babelqueue/php-sdk` requirement to `^1.15.0` (the version that ships
+  the `BabelQueue\Idempotency` stores and claim helpers this adapter wires).
+
 ## [1.1.1] - 2026-06-14
 
 ### Fixed

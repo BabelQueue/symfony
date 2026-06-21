@@ -6,6 +6,7 @@ namespace BabelQueue\Symfony\Messenger;
 
 use BabelQueue\Codec\EnvelopeCodec;
 use BabelQueue\Symfony\Contracts\PolyglotMessage;
+use BabelQueue\Symfony\Messenger\Stamp\BabelMessageIdStamp;
 use BabelQueue\Symfony\Messenger\Stamp\BabelTraceStamp;
 use LogicException;
 use Symfony\Component\Messenger\Envelope;
@@ -133,6 +134,15 @@ final class BabelQueueSerializer implements SerializerInterface
         $traceId = is_string($rawTraceId) ? $rawTraceId : '';
         if ($traceId !== '') {
             $stamps[] = new BabelTraceStamp($traceId);
+        }
+
+        // Surface the canonical meta.id so consume-side middleware (idempotency)
+        // can dedupe a redelivery on the stable per-message identity.
+        $meta = is_array($data['meta'] ?? null) ? $data['meta'] : [];
+        $rawMessageId = $meta['id'] ?? '';
+        $messageId = is_string($rawMessageId) ? $rawMessageId : '';
+        if ($messageId !== '') {
+            $stamps[] = new BabelMessageIdStamp($messageId);
         }
 
         return new Envelope($message, $stamps);
