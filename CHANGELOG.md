@@ -9,6 +9,30 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-01
+
+### Changed
+- **Release workflow: Packagist credentials moved out of the URL.** The optional
+  "Notify Packagist" step now sends `Authorization: Bearer USERNAME:API_TOKEN`
+  (Packagist's documented scheme) to `https://packagist.org/api/update-package`
+  instead of passing `username` / `apiToken` as query parameters, so the token can
+  no longer surface in request logs, proxies or curl error output. Secret names are
+  unchanged (`PACKAGIST_USERNAME`, `PACKAGIST_TOKEN`).
+- Added `.github/dependabot.yml` (weekly `composer` and `github-actions` updates).
+- **Documented: retries on Amazon SQS are Messenger's.** The README now states
+  that on SQS, Messenger's retry strategy re-sends a failed message (with a
+  `DelayStamp`) and deletes the original rather than calling
+  `ChangeMessageVisibility`. It recommends a Messenger `failure_transport` for
+  messages that exhaust their retries, and states that an undecodable (poison)
+  body never reaches the failure transport: the SQS receiver rejects it, which
+  by default is `DeleteMessage`, so it is lost and an SQS RedrivePolicy cannot
+  catch it. On Symfony 7.4+ `delete_on_rejection: false` plus a RedrivePolicy
+  keeps it (with Messenger retries off and no `failure_transport` on that
+  transport, which would otherwise collect one copy per receive). The Unknown URN note no longer claims
+  that such a message is routed to the failure transport. No code change.
+
+## [1.2.0] - 2026-06-21
+
 ### Added
 - **Idempotent message handling (ADR-0022).** An opt-in Messenger middleware,
   `BabelQueue\Symfony\Messenger\IdempotencyMiddleware`, deduplicates a redelivered

@@ -202,14 +202,46 @@ Run the worker as usual: `php bin/console messenger:consume babel`.
 - **Routing** is Messenger's job: it routes the decoded message class to a handler.
 - **Retry** bridges both ways — Messenger's `RedeliveryStamp` ⇄ the envelope's
   top-level `attempts`.
+- **Retry on Amazon SQS** is Messenger's, not the broker's. Messenger's retry
+  strategy re-sends the failed message as a new SQS message (with a `DelayStamp`
+  for the backoff) and deletes the original; it does not use SQS
+  `ChangeMessageVisibility`, so the redrive policy's `maxReceiveCount` never sees
+  those retries. This package is only the serializer and keeps Messenger's
+  behaviour as-is. The two failure cases end differently:
+  - **Handler failure, retries exhausted** — Messenger sends the message to your
+    `failure_transport` if one is configured (otherwise it is dropped), then
+    deletes it from SQS. Configure a `failure_transport` to keep these.
+  - **Undecodable body (poison)** — malformed JSON, a list `data`, no URN or an
+    unmapped URN make this serializer throw `MessageDecodingFailedException`.
+    The SQS receiver then rejects the message *before* any Envelope exists, so
+    it never reaches the `failure_transport`, and rethrows (the exception
+    propagates out of `messenger:consume`). By default reject is `DeleteMessage`:
+    the body is **lost**, and an SQS RedrivePolicy cannot catch it either,
+    because a deleted message never reaches `maxReceiveCount`. The only trace
+    is the worker's error output, so ship it to your logs. On Symfony 7.4+ you
+    can keep poison bodies by setting the transport option
+    `delete_on_rejection: false` (with `retry_delay`) and an SQS RedrivePolicy:
+    reject then calls `ChangeMessageVisibility`, the body is received again and
+    SQS moves it to its DLQ after `maxReceiveCount` receives. That option also
+    applies to handler failures, so a message Messenger re-sends for retry also
+    stays in the queue and is delivered twice; use it with Messenger retries off
+    (`max_retries: 0`) and let SQS own retry and DLQ. In that setup do **not**
+    configure a `failure_transport` for this transport: each failed attempt
+    would copy the message there before SQS redelivers it, leaving one copy per
+    receive (plus the one in the SQS DLQ), and `messenger:failed:retry` would
+    replay it several times. On Symfony 6.4–7.3 there
+    is no such option; protecting poison bodies needs a serializer decorator
+    that captures the raw body before rethrowing (not shipped by this package).
 - **Tracing** — the inbound `trace_id` is attached as a `BabelTraceStamp`. With
   `babelqueue.messenger.trace_middleware` on the bus (see config above), any
   message a handler dispatches **automatically** inherits that `trace_id`, so a
   whole chain stays in one trace. A message that pins its own `BabelTraceStamp` or
   implements `HasTraceId` keeps its explicit id.
 - **Unknown URN** — a message whose URN isn't mapped throws
-  `MessageDecodingFailedException`, so Messenger routes it to your failure
-  transport (the idiomatic Symfony behavior).
+  `MessageDecodingFailedException`. Per Messenger's receiver contract the
+  transport removes it from the queue and the worker rethrows; it does **not**
+  reach your failure transport, because no Envelope was decoded. What "removes"
+  means is the transport's reject (SQS: see above).
 - **Idempotency** — with `babelqueue.messenger.idempotency_middleware` on the bus
   (opt-in, see above), a redelivery of the same `meta.id` is acked without
   re-running the handler. The id is surfaced on decode as a `BabelMessageIdStamp`.
