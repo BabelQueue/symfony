@@ -9,7 +9,7 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
-## [1.2.1] - 2026-10-01
+## [1.2.1] - 2026-10-03
 
 ### Changed
 - **Release workflow: Packagist credentials moved out of the URL.** The optional
