@@ -242,6 +242,12 @@ Run the worker as usual: `php bin/console messenger:consume babel`.
   transport removes it from the queue and the worker rethrows; it does **not**
   reach your failure transport, because no Envelope was decoded. What "removes"
   means is the transport's reject (SQS: see above).
+- **Unsupported `schema_version`** — an envelope whose `meta.schema_version` is
+  absent or not `1` is rejected in `decode()` with `MessageDecodingFailedException`,
+  before URN mapping, so no handler runs (same transport-reject semantics as an
+  unknown URN above). The Symfony adapter has no `on_unknown_urn` setting, so
+  nothing here was ever silently dropped; envelopes that omitted
+  `schema_version` and were accepted before are now rejected.
 - **Idempotency** — with `babelqueue.messenger.idempotency_middleware` on the bus
   (opt-in, see above), a redelivery of the same `meta.id` is acked without
   re-running the handler. The id is surfaced on decode as a `BabelMessageIdStamp`.

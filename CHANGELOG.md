@@ -9,6 +9,34 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+### Fixed
+- **Absent or unsupported `meta.schema_version` is now rejected on consume.**
+  `BabelQueueSerializer::decode()` throws `MessageDecodingFailedException` for an envelope whose
+  `meta.schema_version` is missing or not `1` (contract: "consumers MUST reject (or quarantine)
+  versions they do not understand"; same rule as the php-sdk core and the other SDKs), so a
+  handler never runs. As for any `MessageDecodingFailedException`, Messenger's receiver contract
+  has the transport reject the message; keeping it for inspection depends on the transport's own
+  dead-letter / retention settings, not on Messenger's failure transport.
+- **A retry no longer drops what the typed message cannot express.** Re-encoding an envelope
+  rebuilt it from the message, losing unknown top-level keys, unknown `meta` keys and rewriting
+  `meta.id` / `meta.lang`. `decode()` now attaches a `BabelEnvelopeStamp` carrying them and
+  `encode()` restores them (forbidden keys are still never emitted; `bq-message-id` uses the
+  preserved id; the `bq-source-lang` header follows the preserved `meta.lang`). New stamp class
+  only; no public API changed.
+
+### Changed
+- Raised the `babelqueue/php-sdk` floor to `^1.17.0` (forbidden-key warnings, list-shaped `data`
+  rejection and `{}` encoding, K-15).
+
+### Tests / CI
+- **Cross-SDK conformance suite vendored and run through the adapter path.** The canonical
+  suite (`CONFORMANCE_VERSION`, `manifest.json`, `fixtures/`, `schema/` — v1.0.0) now lives
+  byte-for-byte under `tests/conformance/`. `tests/Messenger/SerializerConformanceTest.php`
+  feeds the fixtures through `BabelQueueSerializer::decode()` / `encode()` (stamps, retry
+  attempts, trace id, `data` shape, forbidden keys, rejection of invalid cases). A new
+  `conformance` CI job verifies the vendored copy has not drifted from the canonical
+  repository and gates `ci-green`.
+
 ## [1.2.1] - 2026-10-03
 
 ### Changed

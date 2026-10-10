@@ -93,7 +93,7 @@ final class BabelQueueSerializerTest extends TestCase
             'job' => 'urn:babel:orders:created',
             'trace_id' => 'trace-abc',
             'data' => ['order_id' => 5],
-            'meta' => ['id' => 'm1'],
+            'meta' => ['schema_version' => 1, 'id' => 'm1'],
             'attempts' => 0,
         ]);
         $decoded = $serializer->decode(['body' => $body, 'headers' => []]);
@@ -114,7 +114,7 @@ final class BabelQueueSerializerTest extends TestCase
             'job' => 'urn:babel:orders:created',
             'trace_id' => 'trace-abc',
             'data' => ['order_id' => 5],
-            'meta' => ['id' => 'msg-123'],
+            'meta' => ['schema_version' => 1, 'id' => 'msg-123'],
             'attempts' => 0,
         ]);
 
@@ -131,7 +131,7 @@ final class BabelQueueSerializerTest extends TestCase
             'job' => 'urn:babel:orders:created',
             'trace_id' => 'trace-abc',
             'data' => ['order_id' => 5],
-            'meta' => [],
+            'meta' => ['schema_version' => 1],
             'attempts' => 0,
         ]);
 
@@ -145,7 +145,7 @@ final class BabelQueueSerializerTest extends TestCase
         $this->expectException(MessageDecodingFailedException::class);
 
         $this->serializer()->decode([
-            'body' => json_encode(['job' => 'urn:babel:unknown', 'data' => [], 'meta' => []]),
+            'body' => json_encode(['job' => 'urn:babel:unknown', 'data' => [], 'meta' => ['schema_version' => 1]]),
         ]);
     }
 
@@ -153,7 +153,61 @@ final class BabelQueueSerializerTest extends TestCase
     {
         $this->expectException(MessageDecodingFailedException::class);
 
-        $this->serializer()->decode(['body' => json_encode(['data' => [], 'meta' => []])]);
+        $this->serializer()->decode(['body' => json_encode(['data' => [], 'meta' => ['schema_version' => 1]])]);
+    }
+
+    /**
+     * @return array<string, array{array<string, mixed>}>
+     */
+    public static function unsupportedVersionEnvelopes(): array
+    {
+        $base = ['job' => 'urn:babel:orders:created', 'data' => ['order_id' => 5]];
+
+        return [
+            'schema_version absent' => [$base + ['meta' => ['id' => 'm1']]],
+            'meta absent' => [$base],
+            'meta empty' => [$base + ['meta' => []]],
+            'different version' => [$base + ['meta' => ['schema_version' => 2]]],
+            'version as string' => [$base + ['meta' => ['schema_version' => '1']]],
+            'version null' => [$base + ['meta' => ['schema_version' => null]]],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $envelope
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsupportedVersionEnvelopes')]
+    public function test_absent_or_unsupported_schema_version_fails_decoding(array $envelope): void
+    {
+        $this->expectException(MessageDecodingFailedException::class);
+        $this->expectExceptionMessage('schema_version');
+
+        $this->serializer()->decode(['body' => json_encode($envelope)]);
+    }
+
+    public function test_source_lang_header_follows_the_preserved_meta_lang_on_retry(): void
+    {
+        $body = json_encode([
+            'job' => 'urn:babel:orders:created',
+            'trace_id' => 'trace-abc',
+            'data' => ['order_id' => 5],
+            'meta' => ['schema_version' => 1, 'id' => 'm1', 'lang' => 'go'],
+            'attempts' => 0,
+        ]);
+
+        $retry = $this->serializer()->decode(['body' => $body, 'headers' => []])->with(new RedeliveryStamp(1));
+        $encoded = $this->serializer()->encode($retry);
+
+        $this->assertSame('go', json_decode($encoded['body'], true)['meta']['lang']);
+        $this->assertSame('go', $encoded['headers']['bq-source-lang'], 'header must project the body meta.lang');
+    }
+
+    public function test_source_lang_header_is_php_for_a_freshly_encoded_message(): void
+    {
+        $encoded = $this->serializer()->encode(new Envelope(new OrderCreatedStub(5)));
+
+        $this->assertSame('php', json_decode($encoded['body'], true)['meta']['lang']);
+        $this->assertSame('php', $encoded['headers']['bq-source-lang']);
     }
 
     public function test_non_polyglot_message_cannot_be_encoded(): void
