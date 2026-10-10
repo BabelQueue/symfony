@@ -9,6 +9,15 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-10
+
+MINOR: new public API (`BabelEnvelopeStamp`) alongside the fixes below.
+
+### Added
+- `BabelEnvelopeStamp` — a Messenger stamp that `decode()` attaches to carry what the typed message
+  cannot express (unknown top-level and `meta` keys, the original `meta.id` / `meta.lang`), so
+  `encode()` can restore them on a retry (see Fixed).
+
 ### Fixed
 - **Absent or unsupported `meta.schema_version` is now rejected on consume.**
   `BabelQueueSerializer::decode()` throws `MessageDecodingFailedException` for an envelope whose
@@ -21,8 +30,7 @@ The envelope wire format is versioned separately by `meta.schema_version`
   rebuilt it from the message, losing unknown top-level keys, unknown `meta` keys and rewriting
   `meta.id` / `meta.lang`. `decode()` now attaches a `BabelEnvelopeStamp` carrying them and
   `encode()` restores them (forbidden keys are still never emitted; `bq-message-id` uses the
-  preserved id; the `bq-source-lang` header follows the preserved `meta.lang`). New stamp class
-  only; no public API changed.
+  preserved id; the `bq-source-lang` header follows the preserved `meta.lang`).
 
 ### Changed
 - Raised the `babelqueue/php-sdk` floor to `^1.17.0` (forbidden-key warnings, list-shaped `data`
