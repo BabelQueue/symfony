@@ -52,6 +52,10 @@ final class SerializerConformanceTest extends TestCase
             new MessageRegistry([
                 'urn:babel:orders:created' => ConformanceOrderCreated::class,
                 'urn:babel:catalog:item.indexed' => ConformanceItemIndexed::class,
+                'urn:acme:a' => ConformanceAcmeA::class,
+                'urn:acme:b' => ConformanceAcmeB::class,
+                // forbidden-key-job-nonascii-space-and-urn: U+2003 is not ASCII-blank, so it IS the URN.
+                "\u{2003}" => ConformanceEmSpace::class,
             ]),
             'orders',
         );
@@ -443,5 +447,29 @@ final class ConformanceItemIndexed extends ConformanceMessage
     public function getBabelUrn(): string
     {
         return 'urn:babel:catalog:item.indexed';
+    }
+}
+
+final class ConformanceAcmeA extends ConformanceMessage
+{
+    public function getBabelUrn(): string
+    {
+        return 'urn:acme:a';
+    }
+}
+
+final class ConformanceAcmeB extends ConformanceMessage
+{
+    public function getBabelUrn(): string
+    {
+        return 'urn:acme:b';
+    }
+}
+
+final class ConformanceEmSpace extends ConformanceMessage
+{
+    public function getBabelUrn(): string
+    {
+        return "\u{2003}";
     }
 }
