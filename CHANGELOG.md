@@ -9,6 +9,16 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-17
+
+PATCH: no source change. The envelope stays at `schema_version: 1`.
+
+### Changed
+- Requires `babelqueue/php-sdk` `^1.23.0` (ADR-0031: extension keys preserved on re-emit, forbidden keys
+  rejected on encode).
+- Vendors conformance v1.4.0 and adds a passthrough test that unknown top-level and `meta` keys survive the
+  retry and failure paths.
+
 ## [1.3.0] - 2026-10-10
 
 MINOR: new public API (`BabelEnvelopeStamp`) alongside the fixes below.
