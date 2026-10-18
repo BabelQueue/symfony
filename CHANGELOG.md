@@ -9,6 +9,11 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+### Added
+- **Conformance known-gaps gate (tests/CI only).** `conformance-known-gaps.json` (currently empty); CI and
+  release fail on a stale gap, an unlisted `fail`, or a gap reason without an `ADR-NNNN` / `.ssot/plans/`
+  reference.
+
 ## [1.3.1] - 2026-10-17
 
 PATCH: no source change. The envelope stays at `schema_version: 1`.
