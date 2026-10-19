@@ -9,6 +9,10 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-19
+
+Requires `babelqueue/php-sdk` ^1.24.0 (ASCII trim and the non-string `job` rule, ADR-0032).
+
 ### Added
 - **Conformance known-gaps gate (tests/CI only).** `conformance-known-gaps.json` (currently empty); CI and
   release fail on a stale gap, an unlisted `fail`, or a gap reason without an `ADR-NNNN` / `.ssot/plans/`
