@@ -120,7 +120,7 @@ jobs:
     name: Conformance suite in sync
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Fetch the pinned conformance release script
         run: |
           curl -fsSL -o "$RUNNER_TEMP/fetch.sh" \
