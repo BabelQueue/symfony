@@ -228,6 +228,20 @@ trait CoreConformanceSections
         }, objects: true);
     }
 
+    /**
+     * `retry_backoff` (ADR-0034 §9) is pinned on the SDK's worker-side backoff helper (`Consume\RetryBackoff` in
+     * `babelqueue/php-sdk`, used by its own `Dispatcher`). This adapter does not use that path:
+     * Symfony retries through Messenger's own RetryStrategy, so there is no helper of the adapter's own to run the formula cases against.
+     */
+    public function test_retry_backoff_cases(): void
+    {
+        ConformanceResults::skipAll(
+            'retry_backoff',
+            'ADR-0034 §9: the worker-side backoff helper is the php-sdk Dispatcher\'s; Symfony retries through Messenger\'s own RetryStrategy and applies no BabelQueue backoff parameters',
+        );
+        self::assertTrue(true);
+    }
+
     /** ADR-0022: the seen-set contract of `Idempotent::wrap`, keyed on `meta.id` verbatim. */
     public function test_idempotency_dedup_key(): void
     {

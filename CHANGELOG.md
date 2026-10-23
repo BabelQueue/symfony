@@ -9,6 +9,9 @@ The envelope wire format is versioned separately by `meta.schema_version`
 
 ## [Unreleased]
 
+Conformance v1.6.0 vendored (tests only); no source change. `conformance-known-gaps.json` is empty.
+`BQ_CONFORMANCE_VERSION` is 1.6.0 in `ci.yml` and `release.yml`.
+
 ## [1.4.0] - 2026-10-19
 
 Requires `babelqueue/php-sdk` ^1.24.0 (ASCII trim and the non-string `job` rule, ADR-0032).
