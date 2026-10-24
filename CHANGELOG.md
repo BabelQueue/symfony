@@ -17,6 +17,8 @@ Conformance v1.6.0 vendored (tests only); no source change. `conformance-known-g
   the Redis transport, not Messenger): `BabelQueueSerializer::decode()` already fails an envelope that is
   not valid UTF-8 with `MessageDecodingFailedException` (no source change), so it never reaches a handler
   and follows Messenger's own reject path rather than a BabelQueue DLQ.
+- `poison_dlq` (ADR-0035) is reported as skipped with a reason: the adapter writes no poison DLQ record of its own
+  (an undecodable body goes to Messenger's failure transport), so `results.json` covers every v1.6.0 core section.
 
 ## [1.4.0] - 2026-10-19
 

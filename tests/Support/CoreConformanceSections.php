@@ -242,6 +242,20 @@ trait CoreConformanceSections
         self::assertTrue(true);
     }
 
+    /**
+     * `poison_dlq` (ADR-0035) pins the record an SDK writes to `<queue>.dlq` for an undecodable body. This adapter
+     * writes no such record: a body the serializer cannot decode raises Messenger's MessageDecodingFailedException
+     * and goes to Messenger's own failure transport, so there is no poison DLQ writer of the adapter's own to run the cases against.
+     */
+    public function test_poison_dlq_cases(): void
+    {
+        ConformanceResults::skipAll(
+            'poison_dlq',
+            'ADR-0035: the adapter writes no poison DLQ record; an undecodable body raises MessageDecodingFailedException and is handled by Messenger\'s own failure transport',
+        );
+        self::assertTrue(true);
+    }
+
     /** ADR-0022: the seen-set contract of `Idempotent::wrap`, keyed on `meta.id` verbatim. */
     public function test_idempotency_dedup_key(): void
     {
