@@ -12,6 +12,12 @@ The envelope wire format is versioned separately by `meta.schema_version`
 Conformance v1.6.0 vendored (tests only); no source change. `conformance-known-gaps.json` is empty.
 `BQ_CONFORMANCE_VERSION` is 1.6.0 in `ci.yml` and `release.yml`.
 
+### Tests
+- Regression test for invalid UTF-8 (the invalid-UTF-8-is-poison rule of broker-bindings §1.1, applied in spirit — §1.1 binds
+  the Redis transport, not Messenger): `BabelQueueSerializer::decode()` already fails an envelope that is
+  not valid UTF-8 with `MessageDecodingFailedException` (no source change), so it never reaches a handler
+  and follows Messenger's own reject path rather than a BabelQueue DLQ.
+
 ## [1.4.0] - 2026-10-19
 
 Requires `babelqueue/php-sdk` ^1.24.0 (ASCII trim and the non-string `job` rule, ADR-0032).

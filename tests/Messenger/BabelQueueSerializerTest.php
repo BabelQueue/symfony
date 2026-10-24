@@ -149,6 +149,22 @@ final class BabelQueueSerializerTest extends TestCase
         ]);
     }
 
+    /**
+     * broker-bindings.md section 1.1 (K-G): an envelope carrying invalid UTF-8 never reaches a handler, even for a
+     * registered URN with `schema_version` 1. `json_decode` rejects it, so decoding fails with the unrecoverable
+     * MessageDecodingFailedException: Messenger rejects the message, it is not retried or re-published, and no
+     * U+FFFD-substituted copy is ever built.
+     */
+    public function test_an_envelope_with_invalid_utf8_fails_decoding_and_is_never_dispatched(): void
+    {
+        $body = "{\"job\":\"urn:babel:orders:created\",\"attempts\":0,\"data\":{\"id\":1,\"s\":\"\xff\xfe\"},"
+            . '"meta":{"schema_version":1}}';
+
+        $this->expectException(MessageDecodingFailedException::class);
+
+        $this->serializer()->decode(['body' => $body]);
+    }
+
     public function test_missing_urn_fails_decoding(): void
     {
         $this->expectException(MessageDecodingFailedException::class);
