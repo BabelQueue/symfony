@@ -26,7 +26,7 @@
         "php": "^8.2",
         "babelqueue/php-sdk": "^1.24.0",
         "symfony/messenger": "^6.4|^7.0",
-        "symfony/config": "^6.4|^7.0",
+        "symfony/config": "^8.1.10",
         "symfony/dependency-injection": "^6.4|^7.0",
         "symfony/http-kernel": "^6.4|^7.0"
     },
